@@ -1,25 +1,26 @@
 //! A worked feotest showcase: a diagnostic device as a *stochastic service*,
 //! certified through the measure → verify loop.
 //!
+//! Two explicit entrypoints map to the two questions a regulated team asks —
+//! and to feotest's two tools:
+//!
 //! ```text
-//! cargo run
+//! cargo run -- measure   # experiment → baseline   ("how accurate is it?",   validation)
+//! cargo run -- verify    # probabilistic test      ("does it still meet it?", verification)
+//! cargo run -- demo      # the full narrated loop end-to-end (default)
 //! ```
 //!
-//! The run tells the whole story in four phases:
-//!   1. Characterise the device — a measure experiment mints a baseline
-//!      ("how accurate is it?", validation).
-//!   2. Verify a healthy device still meets that baseline ("does it still meet
-//!      validated performance?", verification).
-//!   3. Catch a silent regression — same declared config, a degraded
-//!      instrument — as a FAIL.
-//!   4. Catch a declared change — a new reagent lot — as a covariate-mismatch
-//!      warning against the baseline it no longer matches.
+//! `measure` and `verify` are the real operational split: you characterise the
+//! device once (validation) and re-run `verify` on every firmware build,
+//! reagent lot, or release (verification / CI gate). `demo` runs the whole
+//! story in one process so a fresh clone has something to look at.
 
 mod contract;
 mod device;
 mod panel;
 
 use std::path::Path;
+use std::process::ExitCode;
 
 use feotest::experiment::MeasureExperiment;
 use feotest::model::ThresholdOrigin;
@@ -31,6 +32,8 @@ use crate::contract::{DiagnosticContract, covariate_keys, covariate_profile};
 use crate::device::{DeviceConfig, MockAnalyzer};
 use crate::panel::Case;
 
+const PANEL: &str = "fixtures/reference-panel.csv";
+
 // Distinct seeds per phase: the device is reproducible within a run, but
 // measurement and verification are *independent draws* from the same process,
 // so a passing verification is statistics, not identity.
@@ -39,12 +42,78 @@ const SEED_VERIFY: u64 = 0x22;
 const SEED_DRIFT: u64 = 0x33;
 const SEED_LOT: u64 = 0x44;
 
-fn main() {
+fn main() -> ExitCode {
     let dir = Path::new("baselines");
-    let _ = std::fs::remove_dir_all(dir);
-    std::fs::create_dir_all(dir).expect("create baselines dir");
+    match std::env::args().nth(1).as_deref() {
+        None | Some("demo") => {
+            demo(dir);
+            ExitCode::SUCCESS
+        }
+        Some("measure") => measure_cmd(dir),
+        Some("verify") => verify_cmd(dir),
+        Some("help" | "-h" | "--help") => {
+            usage();
+            ExitCode::SUCCESS
+        }
+        Some(other) => {
+            eprintln!("unknown command: {other:?}\n");
+            usage();
+            ExitCode::from(2)
+        }
+    }
+}
 
-    let (positives, negatives) = panel::split(panel::load("fixtures/reference-panel.csv"));
+fn usage() {
+    println!("feotest-showcase-medical — a diagnostic device as a stochastic service\n");
+    println!("USAGE: cargo run -- <command>\n");
+    println!("  measure   run the experiment → derive & write the baseline   (validation)");
+    println!("  verify    run the probabilistic test against the baseline     (verification)");
+    println!("  demo      the full narrated measure → verify loop (default)");
+}
+
+// === entrypoint 1: the experiment that derives a baseline ==================
+
+/// Establishes the validated baseline for the current (healthy) device over
+/// both populations, and persists it for `verify` to test against.
+fn measure_cmd(dir: &Path) -> ExitCode {
+    reset_dir(dir);
+    let (positives, negatives) = panel::split(panel::load(PANEL));
+    println!("Measure experiment — establishing the validated baseline\n");
+    characterize(true, &positives, &healthy(), SEED_MEASURE, dir);
+    characterize(false, &negatives, &healthy(), SEED_MEASURE, dir);
+    println!(
+        "\nBaselines written to {}/. Commit them, then `cargo run -- verify` on every release.",
+        dir.display()
+    );
+    ExitCode::SUCCESS
+}
+
+// === entrypoint 2: probabilistic tests against the baseline ================
+
+/// Verifies the current device against the committed baseline. Exits non-zero
+/// if any contract fails — drop straight into a CI gate.
+fn verify_cmd(dir: &Path) -> ExitCode {
+    if !baselines_present(dir) {
+        eprintln!("No baseline found in {}/.", dir.display());
+        eprintln!("Run `cargo run -- measure` first — verification needs a baseline to test against.");
+        return ExitCode::FAILURE;
+    }
+    let (positives, negatives) = panel::split(panel::load(PANEL));
+    println!("Probabilistic test — verifying the device against its committed baseline\n");
+    let sensitivity_ok = verify("sensitivity", true, &positives, &healthy(), SEED_VERIFY, dir);
+    let specificity_ok = verify("specificity", false, &negatives, &healthy(), SEED_VERIFY, dir);
+    if sensitivity_ok && specificity_ok {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::FAILURE
+    }
+}
+
+// === the narrated end-to-end loop ==========================================
+
+fn demo(dir: &Path) {
+    reset_dir(dir);
+    let (positives, negatives) = panel::split(panel::load(PANEL));
     assert!(
         !positives.is_empty() && !negatives.is_empty(),
         "reference panel must contain both positive and normal specimens"
@@ -76,7 +145,9 @@ fn main() {
     );
 }
 
-/// Phase 1: run a measure experiment to establish the device's baseline over a
+// === shared steps ==========================================================
+
+/// Run a measure experiment to establish the device's baseline over a
 /// population, and report the characterised performance.
 fn characterize(expected_positive: bool, panel: &[Case], config: &DeviceConfig, seed: u64, dir: &Path) {
     let id = DiagnosticContract::id_for(expected_positive);
@@ -121,9 +192,9 @@ fn characterize(expected_positive: bool, panel: &[Case], config: &DeviceConfig, 
     );
 }
 
-/// Phases 2–4: verify a device against its committed baseline and render the
-/// full feotest verdict, including any covariate-mismatch warning.
-fn verify(label: &str, expected_positive: bool, panel: &[Case], config: &DeviceConfig, seed: u64, dir: &Path) {
+/// Verify a device against its committed baseline, render the full feotest
+/// verdict, and return whether it passed.
+fn verify(label: &str, expected_positive: bool, panel: &[Case], config: &DeviceConfig, seed: u64, dir: &Path) -> bool {
     println!("\n── {label} ──");
     let contract = DiagnosticContract::new(expected_positive, Box::new(MockAnalyzer::new(config.clone(), seed)));
     // `run()` renders the full feotest verdict block (rate, threshold, Wilson
@@ -145,9 +216,25 @@ fn verify(label: &str, expected_positive: bool, panel: &[Case], config: &DeviceC
         ""
     };
     println!(">>> {label} → {:?}{note}", record.verdict());
+    record.passed()
 }
 
-// --- device configurations -------------------------------------------------
+// === helpers ===============================================================
+
+fn reset_dir(dir: &Path) {
+    let _ = std::fs::remove_dir_all(dir);
+    std::fs::create_dir_all(dir).expect("create baselines dir");
+}
+
+fn baselines_present(dir: &Path) -> bool {
+    std::fs::read_dir(dir).is_ok_and(|entries| {
+        entries
+            .filter_map(Result::ok)
+            .any(|e| e.path().extension().is_some_and(|ext| ext == "yaml"))
+    })
+}
+
+// === device configurations =================================================
 
 /// The validated, healthy instrument.
 fn healthy() -> DeviceConfig {
@@ -163,7 +250,7 @@ fn healthy() -> DeviceConfig {
 }
 
 /// Same declared identity, but the instrument has silently degraded (more
-/// measurement noise). This is the undeclared-change failure mode.
+/// measurement noise). The undeclared-change failure mode.
 fn regressed() -> DeviceConfig {
     DeviceConfig {
         noise_sd: 0.22,

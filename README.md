@@ -16,28 +16,39 @@ a frozen test set would have none of that variability; this does.
 > material (see [`fixtures/README.md`](fixtures/README.md)). It makes no claim
 > about any specific product or vendor.
 
-## Run it
+## Run it — two entrypoints, one loop
+
+The two operations are **explicit**, mirroring the real lifecycle:
 
 ```bash
-cargo run
+cargo run -- measure   # experiment → baseline   ("how accurate is it?",   validation)
+cargo run -- verify    # probabilistic test      ("does it still meet it?", verification)
 ```
 
-One run tells the whole story in four phases:
+- **`measure`** runs the measure experiment over the reference panel, derives
+  the empirical baseline — sensitivity and specificity, each with a Wilson
+  confidence floor, tagged with the device's covariate identity — and writes it
+  to `baselines/`. You do this **once**, when you validate the device.
+- **`verify`** runs the probabilistic test for the current device against that
+  committed baseline and **exits non-zero on failure**, so it drops straight
+  into a CI gate you re-run on every firmware build, reagent lot, or release. It
+  refuses to run if no baseline exists — verification depends on validation
+  having happened.
 
-1. **Characterise** — *"how accurate is it?"* A **measure experiment** runs the
-   device over the reference panel and mints a **baseline**: observed
-   sensitivity and specificity, each with a Wilson confidence floor, tagged
-   with the device's covariate identity. This is **validation**.
-2. **Verify** — *"does it still meet validated performance?"* A
-   **probabilistic test** re-runs a healthy device against that baseline and
-   returns **PASS**. This is **verification**.
-3. **Drift caught** — a *silently* degraded instrument (same declared config,
-   more measurement noise) is verified against the baseline and **FAILS**,
-   below the validated sensitivity floor — a regression the version number
-   never advertised.
-4. **Covariate guard** — the same device with a **new reagent lot** verifies
-   with a `COVARIATE_MISMATCH` warning: the baseline was measured for a
-   different lot, so it no longer applies as-is — re-measure before trusting it.
+```bash
+cargo run            # equivalently: cargo run -- demo
+```
+
+- **`demo`** (the default) runs the whole loop end-to-end in one process, so a
+  fresh clone has the full story to look at, in four phases:
+  1. **Characterise** — the measure experiment mints the baseline (validation).
+  2. **Verify** a healthy device → **PASS** (verification).
+  3. **Drift caught** — a *silently* degraded instrument (same declared config,
+     more measurement noise) → **FAIL**, below the validated sensitivity floor:
+     a regression the version number never advertised.
+  4. **Covariate guard** — the same device with a **new reagent lot** → **PASS**
+     with a `COVARIATE_MISMATCH` warning: the baseline was measured for a
+     different lot, so it no longer applies as-is — re-measure before trusting it.
 
 ## The two questions, the two tools
 
@@ -114,7 +125,7 @@ it in — the contract, the criteria, and the loop are unchanged.
 src/device.rs    the Device seam + the stochastic MockAnalyzer
 src/contract.rs  the ServiceContract: criteria vector, covariates, latency
 src/panel.rs     the reference panel (committed ground truth)
-src/main.rs      the measure → verify loop, four phases
+src/main.rs      the CLI: `measure` / `verify` entrypoints + the `demo` loop
 fixtures/        the reference panel + provenance (see its README)
 scripts/         regenerate the reference panel
 ```
