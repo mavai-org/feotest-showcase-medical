@@ -1,5 +1,10 @@
 # feotest showcase — a diagnostic device as a stochastic service
 
+> **⚠ Early version — work in progress.** This is an early-stage showcase under
+> active development. The device and reference panel are synthetic stand-ins
+> (see below); APIs, structure, and content may change. It demonstrates a
+> *methodology*, not a product, and is not a clinical result.
+
 A worked, runnable example of using [feotest](https://github.com/mavai-org/feotest)
 to make — and then *keep* — a statistically defensible claim about a medical
 device's performance.
