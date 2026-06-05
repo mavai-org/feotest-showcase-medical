@@ -116,7 +116,11 @@ impl ServiceContract for DiagnosticContract {
 
     fn criteria(&self) -> Criteria<Reading> {
         let expected = self.expected_positive;
-        let diagnostic_name = if expected { "sensitivity" } else { "specificity" };
+        let diagnostic_name = if expected {
+            "sensitivity"
+        } else {
+            "specificity"
+        };
 
         Criteria::of([
             Criterion::empirical()
@@ -126,7 +130,9 @@ impl ServiceContract for DiagnosticContract {
                     Reading::Call { positive, .. } if *positive == expected => Ok(()),
                     Reading::Call { measurement, .. } => Err(ContractViolation::new(
                         "misclassified",
-                        format!("device call disagrees with reference (measurement {measurement:.3})"),
+                        format!(
+                            "device call disagrees with reference (measurement {measurement:.3})"
+                        ),
                     )),
                     Reading::QcFail { .. } => Err(ContractViolation::new(
                         "no-result",

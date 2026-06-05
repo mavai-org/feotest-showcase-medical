@@ -95,13 +95,29 @@ fn measure_cmd(dir: &Path) -> ExitCode {
 fn verify_cmd(dir: &Path) -> ExitCode {
     if !baselines_present(dir) {
         eprintln!("No baseline found in {}/.", dir.display());
-        eprintln!("Run `cargo run -- measure` first — verification needs a baseline to test against.");
+        eprintln!(
+            "Run `cargo run -- measure` first — verification needs a baseline to test against."
+        );
         return ExitCode::FAILURE;
     }
     let (positives, negatives) = panel::split(panel::load(PANEL));
     println!("Probabilistic test — verifying the device against its committed baseline\n");
-    let sensitivity_ok = verify("sensitivity", true, &positives, &healthy(), SEED_VERIFY, dir);
-    let specificity_ok = verify("specificity", false, &negatives, &healthy(), SEED_VERIFY, dir);
+    let sensitivity_ok = verify(
+        "sensitivity",
+        true,
+        &positives,
+        &healthy(),
+        SEED_VERIFY,
+        dir,
+    );
+    let specificity_ok = verify(
+        "specificity",
+        false,
+        &negatives,
+        &healthy(),
+        SEED_VERIFY,
+        dir,
+    );
     if sensitivity_ok && specificity_ok {
         ExitCode::SUCCESS
     } else {
@@ -131,13 +147,36 @@ fn demo(dir: &Path) {
     println!(
         "\n=== 2. Verify — probabilistic test vs baseline (\"does it still meet validated performance?\") ==="
     );
-    verify("healthy device, same config", true, &positives, &healthy(), SEED_VERIFY, dir);
+    verify(
+        "healthy device, same config",
+        true,
+        &positives,
+        &healthy(),
+        SEED_VERIFY,
+        dir,
+    );
 
-    println!("\n=== 3. Drift caught — a silent regression (same declared config, degraded instrument) ===");
-    verify("degraded device, undeclared", true, &positives, &regressed(), SEED_DRIFT, dir);
+    println!(
+        "\n=== 3. Drift caught — a silent regression (same declared config, degraded instrument) ==="
+    );
+    verify(
+        "degraded device, undeclared",
+        true,
+        &positives,
+        &regressed(),
+        SEED_DRIFT,
+        dir,
+    );
 
     println!("\n=== 4. Covariate guard — a declared change (new reagent lot) ===");
-    verify("new reagent lot L77", true, &positives, &new_lot(), SEED_LOT, dir);
+    verify(
+        "new reagent lot L77",
+        true,
+        &positives,
+        &new_lot(),
+        SEED_LOT,
+        dir,
+    );
 
     println!(
         "\nThe device here is a stochastic mock. To certify a real instrument, implement\n\
@@ -149,13 +188,22 @@ fn demo(dir: &Path) {
 
 /// Run a measure experiment to establish the device's baseline over a
 /// population, and report the characterised performance.
-fn characterize(expected_positive: bool, panel: &[Case], config: &DeviceConfig, seed: u64, dir: &Path) {
+fn characterize(
+    expected_positive: bool,
+    panel: &[Case],
+    config: &DeviceConfig,
+    seed: u64,
+    dir: &Path,
+) {
     let id = DiagnosticContract::id_for(expected_positive);
     let cfg = config.clone();
     let result = MeasureExperiment::builder()
         .service_contract_id(id)
         .service_contract(move || {
-            DiagnosticContract::new(expected_positive, Box::new(MockAnalyzer::new(cfg.clone(), seed)))
+            DiagnosticContract::new(
+                expected_positive,
+                Box::new(MockAnalyzer::new(cfg.clone(), seed)),
+            )
         })
         .samples(u32::try_from(panel.len()).expect("panel size fits u32"))
         .inputs(panel)
@@ -165,16 +213,19 @@ fn characterize(expected_positive: bool, panel: &[Case], config: &DeviceConfig, 
         .run();
 
     let spec = result.spec();
-    let diag = if expected_positive { "sensitivity" } else { "specificity" };
+    let diag = if expected_positive {
+        "sensitivity"
+    } else {
+        "specificity"
+    };
     let (passes, fails) = spec
         .statistics
         .per_criterion
         .as_ref()
         .and_then(|m| m.get(diag))
-        .map_or(
-            (spec.statistics.successes, spec.statistics.failures),
-            |c| (c.successes, c.failures),
-        );
+        .map_or((spec.statistics.successes, spec.statistics.failures), |c| {
+            (c.successes, c.failures)
+        });
     let total = (passes + fails).max(1);
     println!(
         "  {diag}: {:.3} ({passes}/{total} correct)  ·  empirical floor (Wilson lower @95%) = {:.3}  ·  n = {}",
@@ -194,9 +245,19 @@ fn characterize(expected_positive: bool, panel: &[Case], config: &DeviceConfig, 
 
 /// Verify a device against its committed baseline, render the full feotest
 /// verdict, and return whether it passed.
-fn verify(label: &str, expected_positive: bool, panel: &[Case], config: &DeviceConfig, seed: u64, dir: &Path) -> bool {
+fn verify(
+    label: &str,
+    expected_positive: bool,
+    panel: &[Case],
+    config: &DeviceConfig,
+    seed: u64,
+    dir: &Path,
+) -> bool {
     println!("\n── {label} ──");
-    let contract = DiagnosticContract::new(expected_positive, Box::new(MockAnalyzer::new(config.clone(), seed)));
+    let contract = DiagnosticContract::new(
+        expected_positive,
+        Box::new(MockAnalyzer::new(config.clone(), seed)),
+    );
     // `run()` renders the full feotest verdict block (rate, threshold, Wilson
     // bound, latency, baseline provenance, warnings) to stdout.
     let result = ProbabilisticTest::for_contract(contract)
@@ -210,7 +271,11 @@ fn verify(label: &str, expected_positive: bool, panel: &[Case], config: &DeviceC
         .run();
 
     let record = result.verdict_record();
-    let note = if record.warnings().iter().any(|w| w.code() == "COVARIATE_MISMATCH") {
+    let note = if record
+        .warnings()
+        .iter()
+        .any(|w| w.code() == "COVARIATE_MISMATCH")
+    {
         "  ⚠ baseline was measured for a different reagent lot — re-measure before trusting it"
     } else {
         ""

@@ -89,7 +89,8 @@ impl Device for MockAnalyzer {
 
         // The instrument takes a variable amount of time. Sleeping here makes
         // feotest's latency dimension measure a real turnaround distribution.
-        let latency = (self.config.latency_ms_mean + gaussian(seed ^ 0x0A) * self.config.latency_ms_sd)
+        let latency = (self.config.latency_ms_mean
+            + gaussian(seed ^ 0x0A) * self.config.latency_ms_sd)
             .max(0.3);
         std::thread::sleep(Duration::from_secs_f64(latency / 1000.0));
 
@@ -99,7 +100,8 @@ impl Device for MockAnalyzer {
             };
         }
 
-        let measurement = case.severity + self.config.bias + gaussian(seed ^ 0x0C) * self.config.noise_sd;
+        let measurement =
+            case.severity + self.config.bias + gaussian(seed ^ 0x0C) * self.config.noise_sd;
         Reading::Call {
             positive: measurement >= Self::THRESHOLD,
             measurement,
