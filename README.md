@@ -65,6 +65,22 @@ cargo run -- report
   verification record. Requires `xsltproc` on `PATH` (feotest produces the
   report by XSLT over the verdict's XML interchange form).
 
+```bash
+cargo run --bin sentinel
+```
+
+- **`sentinel`** — a **separate binary**, as a real field agent would ship —
+  demonstrates **in-field self-diagnosis**: the *same* contract that validated
+  the device runs, **verification only**, against **onboard control material**
+  (not live patient samples, whose truth is unknown), comparing the device to a
+  baseline embedded with the binary (`field-baseline/`). It is *invoked*
+  repeatedly as the instrument drifts (reagent ageing) until the self-check
+  fails. feotest **neither schedules the self-check nor dictates the response** —
+  if and when to run it, and how to act on a failing verdict, are the
+  manufacturer's decisions (the demo's consecutive-failure alert is an *example*
+  policy, not part of feotest). See
+  [`docs/SENTINEL-SELF-DIAGNOSIS.md`](docs/SENTINEL-SELF-DIAGNOSIS.md).
+
 ## The two questions, the two tools
 
 The showcase rests on a clean correspondence:
@@ -154,13 +170,16 @@ accreditation.
 ## Layout
 
 ```
-src/device.rs    the Device seam + the stochastic MockAnalyzer
-src/contract.rs  the ServiceContract: criteria vector, covariates, latency
-src/panel.rs     the reference panel (committed ground truth)
-src/main.rs      the CLI: `measure` / `verify` entrypoints + the `demo` loop
-fixtures/        the reference panel + provenance (see its README)
-scripts/         regenerate the reference panel
-docs/            INFORMATION-FOR-AUDITORS.md / -AUDITEES.md — assurance & evidence
+src/device.rs        the Device seam + the stochastic MockAnalyzer
+src/contract.rs      the ServiceContract: criteria vector, covariates, latency
+src/panel.rs         the reference panel (committed ground truth)
+src/scenarios.rs     device configurations (healthy / regressed / new lot / drift)
+src/main.rs          the CLI: measure / verify / demo / report
+src/bin/sentinel.rs  the standalone field self-diagnosis agent
+field-baseline/      the pre-validated baseline the sentinel ships with
+fixtures/            the reference panel + provenance (see its README)
+scripts/             regenerate the reference panel
+docs/                INFORMATION-FOR-AUDITORS.md / -AUDITEES.md / SENTINEL-SELF-DIAGNOSIS.md
 ```
 
 ## License

@@ -15,10 +15,9 @@
 //! device once (validation) and re-run `verify` on every firmware build,
 //! reagent lot, or release (verification / CI gate). `demo` runs the whole
 //! story in one process so a fresh clone has something to look at.
-
-mod contract;
-mod device;
-mod panel;
+//!
+//! The field self-diagnosis agent is a *separate* binary, as a real sentinel
+//! would ship — `cargo run --bin sentinel` (see `docs/SENTINEL-SELF-DIAGNOSIS.md`).
 
 use std::path::Path;
 use std::process::ExitCode;
@@ -30,12 +29,10 @@ use feotest::ptest::builder::ThresholdApproach;
 use feotest::reporting::HtmlReportWriter;
 use feotest::spec::SpecResolver;
 
-use crate::contract::{DiagnosticContract, covariate_keys, covariate_profile};
-use crate::device::{DeviceConfig, MockAnalyzer};
-use crate::panel::Case;
-
-/// The committed reference panel.
-const PANEL: &str = "fixtures/reference-panel.csv";
+use feotest_showcase_medical::contract::{DiagnosticContract, covariate_keys, covariate_profile};
+use feotest_showcase_medical::device::{DeviceConfig, MockAnalyzer};
+use feotest_showcase_medical::panel::{self, Case};
+use feotest_showcase_medical::scenarios::{PANEL, healthy, new_lot, regressed};
 
 /// Output path for the HTML-report demo.
 const REPORT: &str = "report.html";
@@ -77,6 +74,7 @@ fn usage() {
     println!("  verify    run the probabilistic test against the baseline     (verification)");
     println!("  demo      the full narrated measure → verify loop (default)");
     println!("  report    run a probabilistic test and write an HTML report (report.html)");
+    println!("\nThe field self-diagnosis agent is a separate binary: cargo run --bin sentinel");
 }
 
 // === entrypoint 1: the experiment that derives a baseline ==================
@@ -351,38 +349,4 @@ fn baselines_present(dir: &Path) -> bool {
             .filter_map(Result::ok)
             .any(|e| e.path().extension().is_some_and(|ext| ext == "yaml"))
     })
-}
-
-// === device configurations =================================================
-
-/// The validated, healthy instrument.
-fn healthy() -> DeviceConfig {
-    DeviceConfig {
-        software_version: "fw-1.2.0".to_owned(),
-        reagent_lot: "L42".to_owned(),
-        noise_sd: 0.10,
-        bias: 0.0,
-        qc_fail_rate: 0.02,
-        latency_ms_mean: 4.0,
-        latency_ms_sd: 1.5,
-    }
-}
-
-/// Same declared identity, but the instrument has silently degraded (more
-/// measurement noise). The undeclared-change failure mode.
-fn regressed() -> DeviceConfig {
-    DeviceConfig {
-        noise_sd: 0.22,
-        ..healthy()
-    }
-}
-
-/// A new reagent lot — a *declared* change: the covariate value differs from
-/// the baseline's, so the verdict carries a covariate-mismatch warning.
-fn new_lot() -> DeviceConfig {
-    DeviceConfig {
-        reagent_lot: "L77".to_owned(),
-        bias: 0.04,
-        ..healthy()
-    }
 }

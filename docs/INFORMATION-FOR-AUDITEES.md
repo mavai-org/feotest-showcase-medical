@@ -79,7 +79,10 @@ argument. (See INFORMATION-FOR-AUDITORS.md for how this loop works.)
 The same contract can be run against a *live* system on a schedule, without a
 test harness, emitting verdicts to configured sinks (e.g. a log or webhook).
 This produces an ongoing stream of verification records suitable as
-post-market-surveillance / performance-monitoring evidence.
+post-market-surveillance / performance-monitoring evidence. Taken to its
+conclusion — a sentinel *inside* the device running periodic self-diagnosis on
+onboard control material — this is in-field continuous verification; see
+[SENTINEL-SELF-DIAGNOSIS.md](SENTINEL-SELF-DIAGNOSIS.md).
 
 ### 5. The contract as code — a controlled specification
 
