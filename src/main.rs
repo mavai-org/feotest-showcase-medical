@@ -8,6 +8,7 @@
 //! cargo run -- measure   # experiment → baseline   ("how accurate is it?",   validation)
 //! cargo run -- verify    # probabilistic test      ("does it still meet it?", verification)
 //! cargo run -- demo      # the full narrated loop end-to-end (default)
+//! cargo run -- report    # a probabilistic test, rendered as an HTML report
 //! ```
 //!
 //! `measure` and `verify` are the real operational split: you characterise the
@@ -26,13 +27,18 @@ use feotest::experiment::MeasureExperiment;
 use feotest::model::ThresholdOrigin;
 use feotest::ptest::ProbabilisticTest;
 use feotest::ptest::builder::ThresholdApproach;
+use feotest::reporting::HtmlReportWriter;
 use feotest::spec::SpecResolver;
 
 use crate::contract::{DiagnosticContract, covariate_keys, covariate_profile};
 use crate::device::{DeviceConfig, MockAnalyzer};
 use crate::panel::Case;
 
+/// The committed reference panel.
 const PANEL: &str = "fixtures/reference-panel.csv";
+
+/// Output path for the HTML-report demo.
+const REPORT: &str = "report.html";
 
 // Distinct seeds per phase: the device is reproducible within a run, but
 // measurement and verification are *independent draws* from the same process,
@@ -51,6 +57,7 @@ fn main() -> ExitCode {
         }
         Some("measure") => measure_cmd(dir),
         Some("verify") => verify_cmd(dir),
+        Some("report") => report_cmd(dir),
         Some("help" | "-h" | "--help") => {
             usage();
             ExitCode::SUCCESS
@@ -69,6 +76,7 @@ fn usage() {
     println!("  measure   run the experiment → derive & write the baseline   (validation)");
     println!("  verify    run the probabilistic test against the baseline     (verification)");
     println!("  demo      the full narrated measure → verify loop (default)");
+    println!("  report    run a probabilistic test and write an HTML report (report.html)");
 }
 
 // === entrypoint 1: the experiment that derives a baseline ==================
@@ -182,6 +190,52 @@ fn demo(dir: &Path) {
         "\nThe device here is a stochastic mock. To certify a real instrument, implement\n\
          `Device` for its API/SDK and drop it in — the contract is unchanged."
     );
+}
+
+// === the HTML-report demo ==================================================
+
+/// Runs a measure → verify cycle and renders the resulting verdict as a
+/// standalone HTML report, using feotest's built-in `HtmlReportWriter`.
+/// Requires `xsltproc` on `PATH`.
+fn report_cmd(dir: &Path) -> ExitCode {
+    reset_dir(dir);
+    let (positives, _negatives) = panel::split(panel::load(PANEL));
+    let samples = u32::try_from(positives.len()).expect("panel size fits u32");
+    let config = healthy();
+
+    println!("Measure → verify, then render the verdict as an HTML report\n");
+    characterize(true, &positives, &config, SEED_MEASURE, dir);
+
+    let contract = DiagnosticContract::new(true, Box::new(MockAnalyzer::new(config, SEED_VERIFY)));
+    let result = ProbabilisticTest::for_contract(contract)
+        .inputs(&positives)
+        .approach(ThresholdApproach::SampleSizeFirst {
+            samples,
+            confidence: 0.95,
+        })
+        .spec_resolver(SpecResolver::with_dir(dir))
+        .threshold_origin(ThresholdOrigin::Empirical)
+        .run();
+
+    // feotest's built-in HTML report writer — the showcase just hands it the
+    // verdict record. (It shells out to `xsltproc` over the verdict XML.)
+    let records = std::slice::from_ref(result.verdict_record());
+    match HtmlReportWriter::generate(records, None) {
+        Ok(html) => {
+            std::fs::write(REPORT, &html).expect("write report");
+            println!("\nHTML report written to {REPORT}");
+            println!("Open it:  open {REPORT}   (macOS)   ·   xdg-open {REPORT}   (Linux)");
+            ExitCode::SUCCESS
+        }
+        Err(e) => {
+            eprintln!("Failed to generate the HTML report: {e}");
+            eprintln!(
+                "This demo needs `xsltproc` on PATH — feotest produces the report by XSLT\n\
+                 over the verdict's XML interchange form."
+            );
+            ExitCode::FAILURE
+        }
+    }
 }
 
 // === shared steps ==========================================================

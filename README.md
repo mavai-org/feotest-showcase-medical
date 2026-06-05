@@ -55,6 +55,16 @@ cargo run            # equivalently: cargo run -- demo
      with a `COVARIATE_MISMATCH` warning: the baseline was measured for a
      different lot, so it no longer applies as-is — re-measure before trusting it.
 
+```bash
+cargo run -- report
+```
+
+- **`report`** runs a measure → verify cycle and renders the resulting verdict
+  as a standalone **HTML report** (`report.html`), using feotest's built-in
+  report writer — the kind of durable artefact an auditee archives as a
+  verification record. Requires `xsltproc` on `PATH` (feotest produces the
+  report by XSLT over the verdict's XML interchange form).
+
 ## The two questions, the two tools
 
 The showcase rests on a clean correspondence:
