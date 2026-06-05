@@ -137,4 +137,6 @@ scripts/         regenerate the reference panel
 
 ## License
 
-Apache-2.0.
+Licensed under the [Apache License, Version 2.0](LICENSE). Contributions are
+accepted under the same license and the
+[Developer Certificate of Origin](dco.txt) — see [CONTRIBUTING.md](CONTRIBUTING.md).
