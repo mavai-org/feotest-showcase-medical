@@ -81,6 +81,15 @@ cargo run --bin sentinel
   policy, not part of feotest). See
   [`docs/SENTINEL-SELF-DIAGNOSIS.md`](docs/SENTINEL-SELF-DIAGNOSIS.md).
 
+> **`field-baseline/` provenance.** The committed baseline is the *validated
+> reference* the sentinel ships with — frozen and version-controlled, as an
+> embedded firmware baseline would be, and deliberately distinct from the
+> gitignored `baselines/` (transient runtime output). It is a generated
+> artefact: regenerate it with `cargo run -- measure` and copy the resulting
+> `diagnostics_tumour_sensitivity-*.yaml` into `field-baseline/`. If the
+> contract changes it goes stale, which surfaces as a baseline-resolution
+> warning rather than a silent mismatch.
+
 ## The two questions, the two tools
 
 The showcase rests on a clean correspondence:
