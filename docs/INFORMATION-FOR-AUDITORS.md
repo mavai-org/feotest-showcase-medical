@@ -135,6 +135,26 @@ without a path back to the specification and an independent check.
   reference panel) to demonstrate the method. No figure in it is a real
   performance result.
 
+## Disclaimer
+
+This document and the accompanying showcase are provided for informational and
+illustrative purposes only, on an "AS IS" basis without warranty of any kind, to
+the fullest extent permitted by the [Apache License 2.0](../LICENSE) under which
+this project is distributed. Nothing here is legal, regulatory, or clinical
+advice.
+
+feotest and this showcase do not constitute, and do not by themselves produce,
+any accreditation, certification, conformity assessment, or regulatory clearance
+(including under IEC 62304, ISO 13485, the EU IVDR/MDR, or FDA regulation).
+Responsibility for the validity of any performance claim, for the reference
+standard behind it, and for compliance with all applicable regulations and
+standards rests entirely with the device manufacturer or operator. Use of
+feotest does not guarantee acceptance of any result by an auditor, notified
+body, or regulator.
+
+All data, devices, and figures in this showcase are synthetic and illustrative
+and must not be cited as real performance results.
+
 ## References
 
 - **Statistical Companion** — the canonical methodology:

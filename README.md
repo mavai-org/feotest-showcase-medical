@@ -124,13 +124,22 @@ it in — the contract, the criteria, and the loop are unchanged.
   (the contract, the confidence floor, the feasibility check, the re-runnable
   gate). It does not replace the protocol or the reference standard.
 
-## For auditors
+## For auditors & auditees
 
-[`docs/INFORMATION-FOR-AUDITORS.md`](docs/INFORMATION-FOR-AUDITORS.md) explains
-the methodology and the **verifiable statistical discipline** behind feotest —
-how its statistics are specified, independently implemented, and conformance-
-checked against the [Statistical Companion](https://github.com/mavai-org/mavai-R/blob/main/docs/STATISTICAL-COMPANION.md)
-and the `mavai-R` oracle, so a verdict can be traced rather than taken on trust.
+Two companion documents in [`docs/`](docs/):
+
+- [INFORMATION-FOR-AUDITORS.md](docs/INFORMATION-FOR-AUDITORS.md) — the
+  methodology and the **verifiable statistical discipline** behind feotest: how
+  its statistics are specified, independently implemented, and conformance-checked
+  against the [Statistical Companion](https://github.com/mavai-org/mavai-R/blob/main/docs/STATISTICAL-COMPANION.md)
+  and the `mavai-R` oracle, so a verdict can be traced rather than taken on trust.
+- [INFORMATION-FOR-AUDITEES.md](docs/INFORMATION-FOR-AUDITEES.md) — for the
+  manufacturer being audited: the **evidence** feotest produces (baselines,
+  verdicts, conformance, continuous verification) and which audit question each
+  artefact helps answer.
+
+Both carry an explicit disclaimer: feotest supplies evidence inputs, not
+accreditation.
 
 ## Layout
 
@@ -141,7 +150,7 @@ src/panel.rs     the reference panel (committed ground truth)
 src/main.rs      the CLI: `measure` / `verify` entrypoints + the `demo` loop
 fixtures/        the reference panel + provenance (see its README)
 scripts/         regenerate the reference panel
-docs/            INFORMATION-FOR-AUDITORS.md — methodology & statistical assurance
+docs/            INFORMATION-FOR-AUDITORS.md / -AUDITEES.md — assurance & evidence
 ```
 
 ## License
