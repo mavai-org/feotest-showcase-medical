@@ -1,25 +1,20 @@
-# feotest showcase — digital-pathology tumour detection
+# feotest showcase — a diagnostic device as a stochastic service
 
 A worked, runnable example of using [feotest](https://github.com/mavai-org/feotest)
-to put **statistical rigour** behind a claim a regulated medical-device team
-actually has to make and defend:
+to make — and then *keep* — a statistically defensible claim about a medical
+device's performance.
 
-> *Over its evaluation set, the tumour-detection model meets its clinical
-> sensitivity and specificity floors — and the evaluation was large enough for
-> that to mean something.*
+The "service under test" is a **physical diagnostic instrument behind an API**:
+given a specimen it returns a call (tumour / normal) with analytical noise,
+the occasional invalid/QC result, and a variable turnaround time. That is a
+genuinely *stochastic* service — run the same specimen twice and the call can
+differ — which is exactly what feotest is for. A frozen model scored once over
+a frozen test set would have none of that variability; this does.
 
-The "service under test" is a tumour/normal classifier for histopathology
-image patches — the kind of stochastic ML component that increasingly sits
-inside in-vitro-diagnostic and digital-pathology devices. feotest does not
-treat it as a black box to eyeball on a test set; it treats it as a
-**stochastic service under contract** and renders a reproducible pass/fail
-verdict with the supporting statistics.
-
-> **Illustrative, not a clinical result.** This repository demonstrates a
-> *methodology*. It ships a placeholder evaluation set (see
-> [`fixtures/README.md`](fixtures/README.md)) and makes no claim about any
-> specific product or vendor. Point it at a real evaluated model to draw real
-> conclusions.
+> **Illustrative, not a clinical result.** This demonstrates a *methodology*.
+> The instrument is a stochastic mock; the reference panel is synthetic control
+> material (see [`fixtures/README.md`](fixtures/README.md)). It makes no claim
+> about any specific product or vendor.
 
 ## Run it
 
@@ -27,60 +22,101 @@ verdict with the supporting statistics.
 cargo run
 ```
 
-This loads the frozen evaluation set (`fixtures/scores.csv`), splits it into
-the tumour-positive and normal populations, and certifies two contracts:
+One run tells the whole story in four phases:
 
-- **Sensitivity** — over tumour patches, the fraction correctly flagged must
-  clear the clinical floor (missing a tumour is the costly error).
-- **Specificity** — over normal patches, the fraction correctly cleared must
-  hold its floor (controls the pathologist's false-alarm burden).
+1. **Characterise** — *"how accurate is it?"* A **measure experiment** runs the
+   device over the reference panel and mints a **baseline**: observed
+   sensitivity and specificity, each with a Wilson confidence floor, tagged
+   with the device's covariate identity. This is **validation**.
+2. **Verify** — *"does it still meet validated performance?"* A
+   **probabilistic test** re-runs a healthy device against that baseline and
+   returns **PASS**. This is **verification**.
+3. **Drift caught** — a *silently* degraded instrument (same declared config,
+   more measurement noise) is verified against the baseline and **FAILS**,
+   below the validated sensitivity floor — a regression the version number
+   never advertised.
+4. **Covariate guard** — the same device with a **new reagent lot** verifies
+   with a `COVARIATE_MISMATCH` warning: the baseline was measured for a
+   different lot, so it no longer applies as-is — re-measure before trusting it.
 
-Each contract also carries a **per-patch latency** commitment: the recorded
-inference time of every patch is replayed on the invocation path, so feotest's
-latency dimension reflects the model's measured profile rather than a fixture
-lookup. Exit code is `0` only if every contract holds — so this drops straight
-into a CI gate or a release-evidence pipeline.
+## The two questions, the two tools
 
-## What feotest actually checks
+The showcase rests on a clean correspondence:
 
-A clinical floor is a **normative** target — a number asserted from a
-specification, not learned from data. feotest evaluates it as follows: the
-contract **passes when the observed pass rate clears the floor**, and it
-reports, alongside the verdict, the *implied confidence*, the Wilson score
-interval for the true rate, and a **feasibility** check on whether the
-evaluation set was large enough to detect a clinically meaningful degradation.
-The rigour is twofold — a transparent, reproducible verdict, and an explicit
-statement of whether your sample size earns the claim — rather than an
-unqualified "we ran it on a test set and it looked fine."
+| Question | feotest tool | Lifecycle |
+|---|---|---|
+| *How accurate is the device?* | **Measure experiment** → empirical baseline | Validation |
+| *Does it still meet its validated performance?* | **Probabilistic test** against that baseline | Verification |
 
-## Two ways to frame the contract
+They are two phases of **one loop** with a handoff: the experiment mints the
+baseline artefact, the test consumes it. The verification answers
+*drift-from-baseline*, not absolute accuracy re-derived — it is a
+non-inferiority check, powered (via the sample size) for the degradation that
+matters. The differentiator over a one-off study in a spreadsheet is that this
+is **code**: run it on every firmware build, reagent lot, or software release
+as an automated gate (lot-release, post-market surveillance under IVDR).
 
-The same machinery supports two distinct regulatory narratives. **This repo
-currently implements the first.**
+## What the contract asserts
 
-1. **Pre-market certification against a fixed clinical floor** *(normative)* —
-   "does the model meet the acceptance threshold on an adequately sized
-   evaluation set?" Maps to IEC 62304 verification and SaMD performance
-   validation.
-2. **Post-market drift detection against a validated baseline** *(empirical,
-   confidence-gated)* — "has the model degraded from its locked, validated
-   baseline beyond what sampling noise explains, at a stated confidence?" Here
-   the threshold is the Wilson lower bound derived from the baseline, so the
-   *confidence bound itself* gates the verdict. Maps to EU AI Act post-market
-   monitoring and continuous validation.
+A device spec is never one number, so neither is the contract. It is a
+**covariate-scoped vector of criteria**, evaluated jointly on one sampling:
 
-Which framing leads the showcase (and its companion articles) is a deliberate
-choice — see the content spine in [`docs/articles/`](docs/articles/).
+- **diagnostic** (sensitivity over the positive panel / specificity over the
+  negative) — *empirical*: its floor is derived from the validated baseline, so
+  it certifies conformance to validated performance, not a number plucked from
+  the air;
+- **valid-result** — *normative*: the device must return a usable call at least
+  95% of the time (a fixed validity floor, not a drift metric);
+- **latency** — a per-assay turnaround commitment at the 95th percentile.
+
+A QC-fail is a *response*, judged by the criteria (it fails the diagnostic
+criterion as a `no-result` and pulls down the validity rate); only a transport
+failure — *no response at all* — is a defect that aborts the run. That is
+feotest's `Result`/Outcome split, and it reads true to anyone who has
+integrated an instrument.
+
+## Covariates are baseline identity
+
+`software_version` and `reagent_lot` are declared **covariates** — the versioned
+identity a baseline is scoped to. A baseline measured under one profile is a
+valid comparator only under the same profile; verify under a different reagent
+lot and feotest raises `COVARIATE_MISMATCH` (phase 4). This is the guard
+against the classic confound — *did the device degrade, or did the conditions
+change?* — and it is why the verification half is honest rather than naive.
+
+## The API seam — drop your instrument in
+
+The contract drives the device through one trait:
+
+```rust
+pub trait Device {
+    fn analyse(&self, case: &Case) -> Reading;   // a real adapter calls the instrument here
+    fn config(&self) -> &DeviceConfig;
+}
+```
+
+`MockAnalyzer` is a faithful stochastic stand-in. To certify a **real**
+instrument, implement `Device` against its SDK / LIS / REST interface and drop
+it in — the contract, the criteria, and the loop are unchanged.
+
+## Honest caveats
+
+- The device and panel are synthetic; the point is the *method*.
+- A real panel's ground truth comes from a **reference standard**, which in
+  deployment is the hard, expensive part this fixture stands in for.
+- This **operationalises the statistics** a CLSI/IVDR performance study needs
+  (the contract, the confidence floor, the feasibility check, the re-runnable
+  gate). It does not replace the protocol or the reference standard.
 
 ## Layout
 
 ```
-src/pathology.rs   the ServiceContract: populations, criteria, latency
-src/fixtures.rs    loads the frozen evaluation set
-src/main.rs        runs both contracts, prints verdicts, sets exit code
-fixtures/          the committed scores + provenance (see its README)
-scripts/           regenerate the scores from a real model + PCam
-docs/articles/     the content series this showcase anchors
+src/device.rs    the Device seam + the stochastic MockAnalyzer
+src/contract.rs  the ServiceContract: criteria vector, covariates, latency
+src/panel.rs     the reference panel (committed ground truth)
+src/main.rs      the measure → verify loop, four phases
+fixtures/        the reference panel + provenance (see its README)
+scripts/         regenerate the reference panel
 ```
 
 ## License

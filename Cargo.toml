@@ -3,7 +3,7 @@ name = "feotest-showcase-medical"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.85"
-description = "A worked feotest showcase: statistically certifying a digital-pathology tumour-detection model against a clinical performance contract."
+description = "A worked feotest showcase: a diagnostic device as a stochastic service, characterised and then continuously verified through the measure-verify loop."
 license = "Apache-2.0"
 publish = false
 
