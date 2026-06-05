@@ -163,5 +163,5 @@ and must not be cited as real performance results.
 - [INFORMATION-FOR-AUDITORS.md](INFORMATION-FOR-AUDITORS.md) — the complementary
   document: the methodology and why the statistics are independently verifiable.
 - **Statistical Companion:**
-  <https://github.com/mavai-org/mavai-R/blob/main/docs/STATISTICAL-COMPANION.md>
+  <https://r.mavai.org/statistical-companion.pdf>
 - **feotest:** <https://github.com/mavai-org/feotest>

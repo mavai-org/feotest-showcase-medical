@@ -65,24 +65,27 @@ with an independent oracle:
    interval construction, threshold derivation, feasibility checking,
    latency-percentile bounds, verdict evaluation — is defined and *justified* in
    a single, language-agnostic methodology document, the **Statistical
-   Companion**
-   ([`mavai-R/docs/STATISTICAL-COMPANION.md`](https://github.com/mavai-org/mavai-R/blob/main/docs/STATISTICAL-COMPANION.md)).
+   Companion** (<https://r.mavai.org/statistical-companion.pdf>).
    The Companion is the authority: where an implementation and the Companion
    disagree, the Companion wins.
 2. **An independent implementation (the oracle).** Those formulae are computed a
    *second time*, in **R**, against established, peer-reviewed statistical
-   packages — the [`mavai-R`](https://github.com/mavai-org/mavai-R) project.
-   This is a deliberately separate implementation in a different language: a
-   common bug would have to occur identically in both to go undetected.
-3. **Published reference fixtures.** `mavai-R` emits the oracle's results as
-   per-topic `(inputs, expected)` cases at floating-point precision, bundled
-   with each tagged release.
+   packages — the `mavai-R` oracle. This is a deliberately separate
+   implementation in a different language: a common bug would have to occur
+   identically in both to go undetected.
+3. **Vendored reference fixtures.** The oracle's results — per-topic
+   `(inputs, expected)` cases at floating-point precision — are vendored into
+   the **open-source feotest repository** (`tests/conformance/`), pinned per
+   release, so they are publicly inspectable and the check runs offline. (The
+   oracle itself, `mavai-R`, is not an open-source project; it is the published
+   methodology and these vendored reference values, not the oracle's source,
+   that an auditor inspects.)
 4. **Automated conformance.** feotest carries a conformance test
-   (`tests/conformance.rs`) that loads those published fixtures and asserts
-   agreement to a stated tolerance (typically 1e-6). **A green conformance test
-   means the framework agrees, numerically, with the independent oracle.** A red
-   one means either the framework has drifted or the oracle has surfaced a
-   defect — both are first-class, investigated outcomes, not silent failures.
+   (`tests/conformance.rs`) that loads those fixtures and asserts agreement to a
+   stated tolerance (typically 1e-6). **A green conformance test means the
+   framework agrees, numerically, with the independent oracle.** A red one means
+   either the framework has drifted or the oracle has surfaced a defect — both
+   are first-class, investigated outcomes, not silent failures.
 
 For an auditor, the consequence is direct: the statistics are *specified
 independently, implemented independently, and cross-checked automatically*. You
@@ -95,8 +98,16 @@ Concrete checks an auditor can perform without privileged access:
 - **Read the methodology.** The Statistical Companion states every formula and
   the rationale for each choice (e.g. why a one-sided Wilson *lower* bound is
   used for degradation tests).
-- **Inspect the reference fixtures.** The published `(inputs, expected)` cases
-  are human-readable and version-tagged.
+- **Read the source.** feotest is an open-source project (Apache-2.0),
+  deliberately architected so its statistical engine is easy to read and audit:
+  the statistics live in a single, isolated module — kept transparent and
+  reviewable rather than buried inside a third-party black box — and implement
+  standard, well-established methods (Wilson score intervals, non-parametric
+  percentile bounds) on a widely-used numerical library, the same methods the R
+  oracle computes independently.
+- **Inspect the reference fixtures.** The oracle's `(inputs, expected)` cases
+  are vendored — human-readable and pinned — in the open-source feotest
+  repository (`tests/conformance/`); no privileged access is required.
 - **Run the conformance test.** `cargo test --test conformance` in feotest
   re-checks the implementation against the oracle on your own machine.
 - **Inspect a baseline artefact.** A committed baseline records its provenance:
@@ -108,7 +119,13 @@ Concrete checks an auditor can perform without privileged access:
   reference, covariate profile, sample count, confidence, observed rate, Wilson
   lower bound) to reconstruct how it was reached.
 
-## Traceability chain
+More than permitting this scrutiny, the mavai project actively **invites** it.
+feotest is open source precisely so that qualified parties can read its
+statistical engine — kept small, isolated, and built on standard, well-
+established methods — and challenge any aspect: the model, the methodology, the
+implementation, or the conformance fixtures. A finding that surfaces a genuine
+defect in the framework *or* in the oracle is welcomed as a first-class outcome
+of the method, not a failure to be hidden.
 
 Every statistical behaviour is traceable end to end:
 
@@ -158,8 +175,9 @@ and must not be cited as real performance results.
 ## References
 
 - **Statistical Companion** — the canonical methodology:
-  <https://github.com/mavai-org/mavai-R/blob/main/docs/STATISTICAL-COMPANION.md>
-- **mavai-R** — the statistical oracle and conformance fixtures:
-  <https://github.com/mavai-org/mavai-R>
-- **feotest** — the framework and its conformance test:
-  <https://github.com/mavai-org/feotest>
+  <https://r.mavai.org/statistical-companion.pdf>
+- **mavai-R** — the statistical oracle (home: <https://r.mavai.org>). Not an
+  open-source project; its reference fixtures are vendored, and publicly
+  inspectable, in the feotest repository under `tests/conformance/`.
+- **feotest** — the open-source framework, its statistical engine, and its
+  conformance test: <https://github.com/mavai-org/feotest>

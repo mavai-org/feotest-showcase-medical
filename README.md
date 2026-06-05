@@ -131,7 +131,7 @@ Two companion documents in [`docs/`](docs/):
 - [INFORMATION-FOR-AUDITORS.md](docs/INFORMATION-FOR-AUDITORS.md) — the
   methodology and the **verifiable statistical discipline** behind feotest: how
   its statistics are specified, independently implemented, and conformance-checked
-  against the [Statistical Companion](https://github.com/mavai-org/mavai-R/blob/main/docs/STATISTICAL-COMPANION.md)
+  against the [Statistical Companion](https://r.mavai.org/statistical-companion.pdf)
   and the `mavai-R` oracle, so a verdict can be traced rather than taken on trust.
 - [INFORMATION-FOR-AUDITEES.md](docs/INFORMATION-FOR-AUDITEES.md) — for the
   manufacturer being audited: the **evidence** feotest produces (baselines,
