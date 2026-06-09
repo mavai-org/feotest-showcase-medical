@@ -5,3 +5,7 @@ __pycache__/
 /.idea
 /baselines
 /report.html
+
+# Agent-local guidance — a gitignored symlink to the orchestrator's
+# .claude-submodules/feotest-showcase-medical.md. Never commit it here.
+CLAUDE.md
