@@ -5,11 +5,17 @@
 //! and to feotest's two tools:
 //!
 //! ```text
+//! cargo run -- optimize  # optimize experiment → chosen configuration ("which config?", design)
 //! cargo run -- measure   # experiment → baseline   ("how accurate is it?",   validation)
 //! cargo run -- verify    # probabilistic test      ("does it still meet it?", verification)
 //! cargo run -- demo      # the full narrated loop end-to-end (default)
 //! cargo run -- report    # a probabilistic test, rendered as an HTML report
 //! ```
+//!
+//! `optimize` is the *first* act: choosing the configuration to validate. It is
+//! development work — descriptive, not inferential — and its emission is the
+//! "why this configuration" record. `measure` then validates that choice; see
+//! `src/optimize.rs`.
 //!
 //! `measure` and `verify` are the real operational split: you characterise the
 //! device once (validation) and re-run `verify` on every firmware build,
@@ -31,11 +37,17 @@ use feotest::spec::SpecResolver;
 
 use feotest_showcase_medical::contract::{DiagnosticContract, covariate_keys, covariate_profile};
 use feotest_showcase_medical::device::{DeviceConfig, MockAnalyzer};
+use feotest_showcase_medical::optimize;
 use feotest_showcase_medical::panel::{self, Case};
 use feotest_showcase_medical::scenarios::{PANEL, healthy, new_lot, regressed};
 
 /// Output path for the HTML-report demo.
 const REPORT: &str = "report.html";
+
+/// Committed output root for the optimize artefact (see the README provenance
+/// note). Written under the source tree, like `field-baseline/`, so a fresh
+/// clone carries the full story without running anything.
+const OPTIMIZATIONS: &str = "optimizations";
 
 // Distinct seeds per phase: the device is reproducible within a run, but
 // measurement and verification are *independent draws* from the same process,
@@ -52,6 +64,7 @@ fn main() -> ExitCode {
             demo(dir);
             ExitCode::SUCCESS
         }
+        Some("optimize") => optimize_cmd(),
         Some("measure") => measure_cmd(dir),
         Some("verify") => verify_cmd(dir),
         Some("report") => report_cmd(dir),
@@ -70,11 +83,50 @@ fn main() -> ExitCode {
 fn usage() {
     println!("feotest-showcase-medical — a diagnostic device as a stochastic service\n");
     println!("USAGE: cargo run -- <command>\n");
+    println!("  optimize  choose the assay protocol → write the optimize artefact  (design)");
     println!("  measure   run the experiment → derive & write the baseline   (validation)");
     println!("  verify    run the probabilistic test against the baseline     (verification)");
     println!("  demo      the full narrated measure → verify loop (default)");
     println!("  report    run a probabilistic test and write an HTML report (report.html)");
     println!("\nThe field self-diagnosis agent is a separate binary: cargo run --bin sentinel");
+}
+
+// === entrypoint 0: the optimize experiment that chooses a configuration ====
+
+/// Choosing the assay protocol — the design/development step that *precedes*
+/// validation. Sweeps the replicate count (a genuine instrument-configuration
+/// knob) with the calling threshold held fixed, scores each protocol with the
+/// cost-aware `accuracy-per-assay` scorer, and writes the canonical optimize
+/// artefact under `optimizations/`. The emission is descriptive: it records
+/// what was tried and what the scorer preferred; the chosen protocol is then
+/// *validated* by `measure`.
+fn optimize_cmd() -> ExitCode {
+    let cases = panel::load(PANEL);
+    println!(
+        "Optimize experiment — choosing the assay protocol (replicate count vs reagent cost)\n"
+    );
+
+    let result = optimize::run(&cases);
+    print!("{result}");
+
+    let path = match result.write_to(OPTIMIZATIONS) {
+        Ok(path) => path,
+        Err(e) => {
+            eprintln!("\nFailed to write the optimize artefact: {e}");
+            return ExitCode::FAILURE;
+        }
+    };
+    println!("\nOptimize artefact written to {}", path.display());
+    println!(
+        "Render it:  mavai optimize {OPTIMIZATIONS} -o optimize-report.html   (public v0.2.0 binary)"
+    );
+    println!(
+        "The chosen protocol is the one the cost-aware scorer ranks first — not the most accurate:\n\
+         accuracy keeps climbing with replicates, but each replicate costs reagent, so the score\n\
+         peaks at a modest count. The calling threshold is fixed throughout — accuracy is earned\n\
+         by precision, never by moving the decision rule."
+    );
+    ExitCode::SUCCESS
 }
 
 // === entrypoint 1: the experiment that derives a baseline ==================

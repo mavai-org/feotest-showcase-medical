@@ -1,0 +1,605 @@
+schemaVersion: mavai-optimize-1
+serviceContractId: diagnostics.tumour.assay-protocol
+experimentId: assay-protocol-tuning
+objective: MAXIMIZE
+scorer: accuracy-per-assay
+generatedAt: 2026-07-17T18:45:21Z
+iterations:
+- iteration: 0
+  factors:
+    replicateCount: 1
+  score: 0.701
+  execution:
+    samplesPlanned: 40
+    samplesExecuted: 40
+    terminationReason: COMPLETED
+  statistics:
+    observed: 0.725
+    successes: 29
+    failures: 11
+    failureDistribution:
+    - condition: missed-tumour
+      count: 2
+    - condition: false-positive
+      count: 9
+    criteria:
+      correct-call:
+        observedPassRate: 0.725
+        pass: 29
+        fail: 11
+        failureDistribution:
+        - condition: false-positive
+          count: 9
+        - condition: missed-tumour
+          count: 2
+  latency:
+    basis: passing-samples
+    contributingSamples: 29
+    totalSamples: 40
+    p50Ms: 4.0
+    p95Ms: 6.0
+    sortedPassingLatenciesMs:
+    - 2
+    - 2
+    - 2
+    - 3
+    - 3
+    - 3
+    - 3
+    - 3
+    - 3
+    - 3
+    - 3
+    - 4
+    - 4
+    - 4
+    - 4
+    - 4
+    - 4
+    - 4
+    - 5
+    - 5
+    - 5
+    - 5
+    - 5
+    - 5
+    - 5
+    - 5
+    - 5
+    - 6
+    - 8
+  cost:
+    totalTimeMs: 191
+    avgTimePerSampleMs: 4
+    totalTokens: 40
+    avgTokensPerSample: 1
+- iteration: 1
+  factors:
+    replicateCount: 3
+  score: 0.8029999999999999
+  execution:
+    samplesPlanned: 40
+    samplesExecuted: 40
+    terminationReason: COMPLETED
+  statistics:
+    observed: 0.875
+    successes: 35
+    failures: 5
+    failureDistribution:
+    - condition: false-positive
+      count: 4
+    - condition: missed-tumour
+      count: 1
+    criteria:
+      correct-call:
+        observedPassRate: 0.875
+        pass: 35
+        fail: 5
+        failureDistribution:
+        - condition: false-positive
+          count: 4
+        - condition: missed-tumour
+          count: 1
+  latency:
+    basis: passing-samples
+    contributingSamples: 35
+    totalSamples: 40
+    p50Ms: 14.0
+    p95Ms: 20.0
+    sortedPassingLatenciesMs:
+    - 8
+    - 9
+    - 9
+    - 9
+    - 9
+    - 10
+    - 11
+    - 11
+    - 11
+    - 11
+    - 12
+    - 12
+    - 12
+    - 13
+    - 13
+    - 13
+    - 14
+    - 14
+    - 14
+    - 14
+    - 15
+    - 15
+    - 16
+    - 16
+    - 16
+    - 16
+    - 17
+    - 17
+    - 17
+    - 17
+    - 18
+    - 20
+    - 20
+    - 20
+    - 22
+  cost:
+    totalTimeMs: 576
+    avgTimePerSampleMs: 14
+    totalTokens: 120
+    avgTokensPerSample: 3
+- iteration: 2
+  factors:
+    replicateCount: 5
+  score: 0.78
+  execution:
+    samplesPlanned: 40
+    samplesExecuted: 40
+    terminationReason: COMPLETED
+  statistics:
+    observed: 0.9
+    successes: 36
+    failures: 4
+    failureDistribution:
+    - condition: missed-tumour
+      count: 3
+    - condition: false-positive
+      count: 1
+    criteria:
+      correct-call:
+        observedPassRate: 0.9
+        pass: 36
+        fail: 4
+        failureDistribution:
+        - condition: false-positive
+          count: 1
+        - condition: missed-tumour
+          count: 3
+  latency:
+    basis: passing-samples
+    contributingSamples: 36
+    totalSamples: 40
+    p50Ms: 22.0
+    p95Ms: 34.0
+    sortedPassingLatenciesMs:
+    - 13
+    - 17
+    - 17
+    - 17
+    - 18
+    - 18
+    - 18
+    - 18
+    - 19
+    - 20
+    - 20
+    - 21
+    - 21
+    - 21
+    - 21
+    - 21
+    - 21
+    - 22
+    - 23
+    - 23
+    - 23
+    - 24
+    - 24
+    - 24
+    - 25
+    - 25
+    - 25
+    - 26
+    - 26
+    - 27
+    - 28
+    - 30
+    - 31
+    - 31
+    - 34
+    - 35
+  cost:
+    totalTimeMs: 932
+    avgTimePerSampleMs: 23
+    totalTokens: 200
+    avgTokensPerSample: 5
+- iteration: 3
+  factors:
+    replicateCount: 7
+  score: 0.6569999999999999
+  execution:
+    samplesPlanned: 40
+    samplesExecuted: 40
+    terminationReason: COMPLETED
+  statistics:
+    observed: 0.825
+    successes: 33
+    failures: 7
+    failureDistribution:
+    - condition: false-positive
+      count: 3
+    - condition: missed-tumour
+      count: 4
+    criteria:
+      correct-call:
+        observedPassRate: 0.825
+        pass: 33
+        fail: 7
+        failureDistribution:
+        - condition: false-positive
+          count: 3
+        - condition: missed-tumour
+          count: 4
+  latency:
+    basis: passing-samples
+    contributingSamples: 33
+    totalSamples: 40
+    p50Ms: 35.0
+    p95Ms: 48.0
+    sortedPassingLatenciesMs:
+    - 24
+    - 27
+    - 28
+    - 28
+    - 29
+    - 30
+    - 30
+    - 31
+    - 32
+    - 32
+    - 32
+    - 33
+    - 33
+    - 34
+    - 34
+    - 34
+    - 35
+    - 35
+    - 37
+    - 37
+    - 37
+    - 37
+    - 38
+    - 39
+    - 40
+    - 40
+    - 41
+    - 42
+    - 42
+    - 45
+    - 46
+    - 48
+    - 49
+  cost:
+    totalTimeMs: 1444
+    avgTimePerSampleMs: 36
+    totalTokens: 280
+    avgTokensPerSample: 7
+- iteration: 4
+  factors:
+    replicateCount: 9
+  score: 0.684
+  execution:
+    samplesPlanned: 40
+    samplesExecuted: 40
+    terminationReason: COMPLETED
+  statistics:
+    observed: 0.9
+    successes: 36
+    failures: 4
+    failureDistribution:
+    - condition: false-positive
+      count: 2
+    - condition: missed-tumour
+      count: 2
+    criteria:
+      correct-call:
+        observedPassRate: 0.9
+        pass: 36
+        fail: 4
+        failureDistribution:
+        - condition: false-positive
+          count: 2
+        - condition: missed-tumour
+          count: 2
+  latency:
+    basis: passing-samples
+    contributingSamples: 36
+    totalSamples: 40
+    p50Ms: 43.0
+    p95Ms: 53.0
+    sortedPassingLatenciesMs:
+    - 29
+    - 31
+    - 34
+    - 35
+    - 35
+    - 36
+    - 37
+    - 38
+    - 38
+    - 38
+    - 39
+    - 40
+    - 40
+    - 40
+    - 41
+    - 42
+    - 42
+    - 43
+    - 43
+    - 44
+    - 45
+    - 45
+    - 46
+    - 46
+    - 47
+    - 47
+    - 47
+    - 48
+    - 48
+    - 48
+    - 49
+    - 50
+    - 50
+    - 50
+    - 53
+    - 57
+  cost:
+    totalTimeMs: 1736
+    avgTimePerSampleMs: 43
+    totalTokens: 360
+    avgTokensPerSample: 9
+- iteration: 5
+  factors:
+    replicateCount: 11
+  score: 0.661
+  execution:
+    samplesPlanned: 40
+    samplesExecuted: 40
+    terminationReason: COMPLETED
+  statistics:
+    observed: 0.925
+    successes: 37
+    failures: 3
+    failureDistribution:
+    - condition: false-positive
+      count: 2
+    - condition: missed-tumour
+      count: 1
+    criteria:
+      correct-call:
+        observedPassRate: 0.925
+        pass: 37
+        fail: 3
+        failureDistribution:
+        - condition: false-positive
+          count: 2
+        - condition: missed-tumour
+          count: 1
+  latency:
+    basis: passing-samples
+    contributingSamples: 37
+    totalSamples: 40
+    p50Ms: 51.0
+    p95Ms: 67.0
+    sortedPassingLatenciesMs:
+    - 44
+    - 44
+    - 44
+    - 44
+    - 45
+    - 45
+    - 46
+    - 46
+    - 47
+    - 47
+    - 48
+    - 50
+    - 51
+    - 51
+    - 51
+    - 51
+    - 51
+    - 51
+    - 51
+    - 52
+    - 53
+    - 55
+    - 55
+    - 56
+    - 56
+    - 56
+    - 57
+    - 58
+    - 58
+    - 59
+    - 59
+    - 61
+    - 61
+    - 63
+    - 64
+    - 67
+    - 81
+  cost:
+    totalTimeMs: 2164
+    avgTimePerSampleMs: 54
+    totalTokens: 440
+    avgTokensPerSample: 11
+- iteration: 6
+  factors:
+    replicateCount: 13
+  score: 0.5880000000000001
+  execution:
+    samplesPlanned: 40
+    samplesExecuted: 40
+    terminationReason: COMPLETED
+  statistics:
+    observed: 0.9
+    successes: 36
+    failures: 4
+    failureDistribution:
+    - condition: false-positive
+      count: 3
+    - condition: missed-tumour
+      count: 1
+    criteria:
+      correct-call:
+        observedPassRate: 0.9
+        pass: 36
+        fail: 4
+        failureDistribution:
+        - condition: false-positive
+          count: 3
+        - condition: missed-tumour
+          count: 1
+  latency:
+    basis: passing-samples
+    contributingSamples: 36
+    totalSamples: 40
+    p50Ms: 62.0
+    p95Ms: 75.0
+    sortedPassingLatenciesMs:
+    - 51
+    - 54
+    - 55
+    - 55
+    - 57
+    - 57
+    - 59
+    - 59
+    - 59
+    - 60
+    - 60
+    - 60
+    - 60
+    - 61
+    - 61
+    - 61
+    - 61
+    - 62
+    - 63
+    - 63
+    - 64
+    - 64
+    - 65
+    - 65
+    - 65
+    - 66
+    - 67
+    - 68
+    - 69
+    - 70
+    - 71
+    - 71
+    - 73
+    - 74
+    - 75
+    - 80
+  cost:
+    totalTimeMs: 2575
+    avgTimePerSampleMs: 64
+    totalTokens: 520
+    avgTokensPerSample: 13
+- iteration: 7
+  factors:
+    replicateCount: 15
+  score: 0.5650000000000001
+  execution:
+    samplesPlanned: 40
+    samplesExecuted: 40
+    terminationReason: COMPLETED
+  statistics:
+    observed: 0.925
+    successes: 37
+    failures: 3
+    failureDistribution:
+    - condition: false-positive
+      count: 2
+    - condition: missed-tumour
+      count: 1
+    criteria:
+      correct-call:
+        observedPassRate: 0.925
+        pass: 37
+        fail: 3
+        failureDistribution:
+        - condition: false-positive
+          count: 2
+        - condition: missed-tumour
+          count: 1
+  latency:
+    basis: passing-samples
+    contributingSamples: 37
+    totalSamples: 40
+    p50Ms: 72.0
+    p95Ms: 86.0
+    sortedPassingLatenciesMs:
+    - 51
+    - 61
+    - 61
+    - 64
+    - 66
+    - 66
+    - 67
+    - 67
+    - 67
+    - 68
+    - 69
+    - 69
+    - 70
+    - 70
+    - 70
+    - 71
+    - 71
+    - 71
+    - 72
+    - 72
+    - 73
+    - 74
+    - 74
+    - 75
+    - 75
+    - 77
+    - 79
+    - 79
+    - 79
+    - 79
+    - 82
+    - 84
+    - 84
+    - 85
+    - 86
+    - 86
+    - 87
+  cost:
+    totalTimeMs: 2946
+    avgTimePerSampleMs: 73
+    totalTokens: 600
+    avgTokensPerSample: 15
+convergence:
+  totalIterations: 8
+  bestIteration: 1
+  bestScore: 0.8029999999999999
+  bestFactors:
+    replicateCount: 3
+  terminationReason: MAX_ITERATIONS

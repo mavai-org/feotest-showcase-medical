@@ -66,6 +66,20 @@ cargo run -- report
   report by XSLT over the verdict's XML interchange form).
 
 ```bash
+cargo run -- optimize
+```
+
+- **`optimize`** runs the *first* act of the lifecycle: **choosing** the
+  configuration to validate. It sweeps a genuine instrument-configuration knob
+  (the assay's **replicate count**), scores each candidate with a cost-aware
+  scorer, and writes the canonical `mavai-optimize-1` artefact under
+  `optimizations/`. This is **design/development work** — descriptive, not
+  inferential — and the emission is the *"why this configuration"* record an
+  auditor asks for. See [Choosing the assay protocol](#choosing-the-assay-protocol-the-first-act)
+  below. Render it with the public `mavai` binary:
+  `mavai optimize optimizations -o optimize-report.html`.
+
+```bash
 cargo run --bin sentinel
 ```
 
@@ -90,22 +104,103 @@ cargo run --bin sentinel
 > contract changes it goes stale, which surfaces as a baseline-resolution
 > warning rather than a silent mismatch.
 
-## The two questions, the two tools
+## Three questions, one lifecycle
 
-The showcase rests on a clean correspondence:
+The showcase rests on a clean correspondence — three questions a regulated team
+asks, three feotest tools, three phases of one device lifecycle:
 
 | Question | feotest tool | Lifecycle |
 |---|---|---|
-| *How accurate is the device?* | **Measure experiment** → empirical baseline | Validation |
+| *Which configuration should the device ship with?* | **Optimize experiment** → iteration history + chosen optimum | Design / development |
+| *How accurate is the device there?* | **Measure experiment** → empirical baseline | Validation |
 | *Does it still meet its validated performance?* | **Probabilistic test** against that baseline | Verification |
 
-They are two phases of **one loop** with a handoff: the experiment mints the
-baseline artefact, the test consumes it. The verification answers
+Optimize is **descriptive development work**: the artefact records what was
+tried and what the scorer preferred, and makes no inferential claim. The chosen
+configuration is then *validated* by the measure experiment — optimize never
+replaces validation. Measure and verify are the two phases of the continuous
+**one loop** with a handoff: the experiment mints the baseline artefact, the
+test consumes it. The verification answers
 *drift-from-baseline*, not absolute accuracy re-derived — it is a
 non-inferiority check, powered (via the sample size) for the degradation that
 matters. The differentiator over a one-off study in a spreadsheet is that this
 is **code**: run it on every firmware build, reagent lot, or software release
 as an automated gate (lot-release, post-market surveillance under IVDR).
+
+## Choosing the assay protocol: the first act
+
+Before you can validate a configuration, you have to *choose* one. `cargo run
+-- optimize` is that design-phase step. It tunes a single **genuine
+instrument-configuration parameter** — the assay's **replicate count**: how many
+replicate assays the instrument runs per specimen before averaging them into one
+call. More replicates average the analytical noise down, so more calls agree
+with the reference panel; but each replicate costs reagent and turnaround time.
+The optimum is an honest interior trade — enough averaging to be reliable, not
+so much that it is wasteful.
+
+**The anti-pattern this chapter is built to avoid.** It would be tempting to
+"optimize" the device's **calling threshold** instead, scored by agreement with
+the panel. Don't. The panel defines truth as `severity >= 0.5`, so tuning the
+threshold to maximise label-agreement just fits the decision boundary to the
+answer key — it "discovers" the lot's calibration offset by overfitting to the
+validation set, widening the goalposts until a goal is scored. **The optimized
+knob must be a real configuration parameter that trades genuine qualities
+(precision versus cost) — never the decision rule the validation later judges
+against.** So the calling threshold stays *fixed* at the panel's truth boundary
+throughout; accuracy is earned by precision, not by relabelling.
+
+**Score ≠ pass rate, honestly.** The run is scored by a named, cost-aware custom
+scorer, `accuracy-per-assay`: observed accuracy minus a penalty proportional to
+the mean reagent cost per specimen. Cost travels through the artefact's *stated*
+value — each replicate assay records one token, so stated tokens per sample =
+replicate count — because a feotest `Scorer` sees only the execution result,
+never the factor. Nothing statistical is added beyond this arithmetic over two
+stated values. The consequence is the pedagogic punchline: **accuracy rises
+monotonically with replicates while the score peaks at a modest count and then
+falls**, so the highest-accuracy iterations sit near the *bottom* of the
+leaderboard by score. The convergence line names `scorer: accuracy-per-assay`,
+and because the scorer is not the pass rate, `mavai optimize --hide-scores`
+would (correctly) draw a notice — the ranking is not a pass-rate ranking.
+
+Running it over the reference panel sweeps replicate counts 1, 3, 5, … 15 and
+writes one `mavai-optimize-1` document. The trajectory it records:
+
+| Replicate count | Accuracy | `accuracy-per-assay` score |
+|---|---|---|
+| 1× | 29/40 | 0.701 |
+| **3×** | **35/40** | **0.803 ← chosen** |
+| 5× | 36/40 | 0.780 |
+| 7× | 33/40 | 0.657 |
+| 9× | 36/40 | 0.684 |
+| 11× | 37/40 | 0.661 |
+| 13× | 36/40 | 0.588 |
+| 15× | 37/40 | 0.565 |
+
+The chosen protocol is **3× replicate** — *not* the most accurate one (37/40 at
+11× and 15×). The extra replicates buy real accuracy, but not enough to pay for
+their reagent, and the cost-aware scorer says so. Each iteration's
+`failureDistribution` also records *which way* the errors fall — `missed-tumour`
+versus `false-positive` — so you can read the trade per protocol.
+
+**Rendering the run.** The showcase renders nothing itself — comparison
+rendering is the shared tool's job. Render the committed artefact with the
+public `mavai` binaries (v0.2.0, [mavai-org/mavai releases](https://github.com/mavai-org/mavai/releases)):
+
+```bash
+mavai optimize optimizations -o optimize-report.html
+```
+
+The report gives you the ranked leaderboard, the rise-and-fall score trajectory,
+the per-iteration criteria and failure matrix, and — the punchline again — that
+the winning protocol is not the most accurate, because the named cost-aware
+scorer ordered it that way.
+
+> **`optimizations/` provenance.** The committed artefact under
+> `optimizations/diagnostics.tumour.assay-protocol/` is generated output, like
+> `field-baseline/`: regenerate it with `cargo run -- optimize` and commit the
+> result, so a fresh clone has the whole story without running anything. The
+> scores and counts are deterministic (fixed seed and panel); only the wall-clock
+> latency figures and `generatedAt` timestamp vary between regenerations.
 
 ## What the contract asserts
 
@@ -183,9 +278,11 @@ src/device.rs        the Device seam + the stochastic MockAnalyzer
 src/contract.rs      the ServiceContract: criteria vector, covariates, latency
 src/panel.rs         the reference panel (committed ground truth)
 src/scenarios.rs     device configurations (healthy / regressed / new lot / drift)
-src/main.rs          the CLI: measure / verify / demo / report
+src/optimize.rs      the optimize scenario: the assay-protocol knob, scorer, sweep
+src/main.rs          the CLI: optimize / measure / verify / demo / report
 src/bin/sentinel.rs  the standalone field self-diagnosis agent
 field-baseline/      the pre-validated baseline the sentinel ships with
+optimizations/       the committed optimize artefact (regenerate: cargo run -- optimize)
 fixtures/            the reference panel + provenance (see its README)
 scripts/             regenerate the reference panel
 docs/                INFORMATION-FOR-AUDITORS.md / -AUDITEES.md / SENTINEL-SELF-DIAGNOSIS.md
