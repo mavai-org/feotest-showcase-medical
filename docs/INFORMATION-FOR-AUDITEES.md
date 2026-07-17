@@ -25,6 +25,29 @@ process around it.
 
 ## The artefacts feotest produces
 
+### 0. The optimization history — a design/development record
+
+An *optimize experiment* records the **design-phase** step that precedes
+validation: choosing the configuration to ship. Its artefact is the full
+iteration history — every configuration tried, its observed performance and
+failure distribution, and the score a stated, named scorer assigned it — plus
+the convergence summary naming the selected optimum and why the search stopped.
+This is deliberately **descriptive, not inferential**: it makes no statistical
+claim about the chosen configuration; it documents *what was tried and why this
+one was preferred*. That distinction matters to an auditor. The optimization
+history is the **"why this configuration" record** feeding design controls
+(design/development inputs and outputs), kept clearly separate from the
+verification-and-validation evidence in (1) and (2): the optimize run *chooses*,
+the measure experiment then *validates* the choice, and the probabilistic test
+*verifies* it stays valid. Because the tuned parameter is a genuine
+configuration knob — never the decision rule the validation judges against — the
+history is an honest account of an engineering trade, not a boundary fitted to
+the answer key.
+
+*Evidences:* "these configurations were evaluated, on this many samples, scored
+this way, and this one was selected for these reasons" — the traceable design
+rationale behind the configuration that then enters validation.
+
 ### 1. The baseline — a validation record
 
 A *measure experiment* derives an empirical **baseline**, written as a
@@ -104,6 +127,7 @@ corrective-action records rather than leaving a bare pass/fail.
 
 | Audit need | Artefact(s) that help |
 |---|---|
+| Design/development rationale (why this configuration) | Optimization history (0) |
 | Analytical / clinical performance with confidence | Baseline (1), Verdict (2) |
 | Ongoing verification on change (lot, firmware, release) | Verdict (2) re-run; Continuous verification (4) |
 | Post-market surveillance / performance monitoring | Continuous verification (4) |
@@ -125,7 +149,8 @@ corrective-action records rather than leaving a bare pass/fail.
 
 ## What this showcase demonstrates
 
-Running `cargo run -- measure` produces baseline artefacts; `cargo run -- verify`
+Running `cargo run -- optimize` produces the design-phase optimization history;
+`cargo run -- measure` produces baseline artefacts; `cargo run -- verify`
 produces verdicts. The XML/report emission, continuous (sentinel) operation, and
 archival of these artefacts as controlled records are feotest capabilities a
 real deployment would wire in; this early showcase demonstrates the underlying

@@ -171,9 +171,9 @@ checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 
 [[package]]
 name = "feotest"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a81e7d262050d8be181929b5856491b23d5bf1266d45381a8b565ff4b80baeb"
+checksum = "f21de17e33e87d7adbdb886033eae6fc659b6fd80c01caecdf8d829e50b9bb86"
 dependencies = [
  "clap",
  "feotest-macros",
@@ -202,6 +202,7 @@ name = "feotest-showcase-medical"
 version = "0.1.0"
 dependencies = [
  "feotest",
+ "serde",
 ]
 
 [[package]]

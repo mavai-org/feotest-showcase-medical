@@ -12,4 +12,7 @@ publish = false
 default-run = "feotest-showcase-medical"
 
 [dependencies]
-feotest = "0.1"
+feotest = "0.2"
+# The optimize scenario's factor type derives `Serialize` so feotest can emit it
+# as the artefact's `factors` mapping.
+serde = { version = "1", features = ["derive"] }
